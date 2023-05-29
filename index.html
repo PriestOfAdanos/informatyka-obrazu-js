@@ -10,55 +10,49 @@ Your browser does not support the HTML5 canvas tag.
 <button id="move">Przesuń punkty</button>
 <button id="eraser">Gumka</button>
 <input type="range" id="lineWidth" min="1" max="10">
+<button id="ellipse">Elipsa</button>
+<button id="rectangle">Prostokąt</button>
+<button id="polygon">Wielokąt</button>
 
 <script>
 var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
 
-var lines = [];
-var selectedLineIndex;
+var shapes = [];
+var selectedShapeIndex;
 var movingPoint;
 var creating = false;
 var moving = false;
 var erasing = false;
+var shapeType = "";
 
 ctx.lineWidth = 1;
 
 c.onmousedown = function(e) {
   if (erasing) {
-    lines = lines.filter(function(line) {
-      return Math.abs(line.x1 - e.clientX) + Math.abs(line.y1 - e.clientY) > ctx.lineWidth &&
-             Math.abs(line.x2 - e.clientX) + Math.abs(line.y2 - e.clientY) > ctx.lineWidth;
+    shapes = shapes.filter(function(shape) {
+      return !(shape.x <= e.clientX && e.clientX <= shape.x + shape.width &&
+               shape.y <= e.clientY && e.clientY <= shape.y + shape.height);
     });
     redraw();
   } else if (creating) {
-    var line = {x1: e.clientX, y1: e.clientY, x2: e.clientX, y2: e.clientY};
-    lines.push(line);
-    selectedLineIndex = lines.length - 1;
-    movingPoint = 'x2';
-  } else if (moving) {
-    selectedLineIndex = lines.findIndex(function(line) {
-      return Math.abs(line.x1 - e.clientX) + Math.abs(line.y1 - e.clientY) < 10 ||
-             Math.abs(line.x2 - e.clientX) + Math.abs(line.y2 - e.clientY) < 10;
-    });
-    if (selectedLineIndex !== -1) {
-      var line = lines[selectedLineIndex];
-      movingPoint = Math.abs(line.x1 - e.clientX) + Math.abs(line.y1 - e.clientY) < 10 ? 'x1' : 'x2';
-    }
+    var shape = {type: shapeType, x: e.clientX, y: e.clientY, width: 0, height: 0};
+    shapes.push(shape);
+    selectedShapeIndex = shapes.length - 1;
   }
 };
 
 c.onmousemove = function(e) {
-  if (selectedLineIndex !== -1) {
-    var line = lines[selectedLineIndex];
-    line[movingPoint] = e.clientX;
-    line[movingPoint.replace('x', 'y')] = e.clientY;
+  if (selectedShapeIndex !== -1) {
+    var shape = shapes[selectedShapeIndex];
+    shape.width = e.clientX - shape.x;
+    shape.height = e.clientY - shape.y;
     redraw();
   }
 };
 
 c.onmouseup = function() {
-  selectedLineIndex = -1;
+  selectedShapeIndex = -1;
 };
 
 document.getElementById("create").onclick = function() {
@@ -79,16 +73,46 @@ document.getElementById("eraser").onclick = function() {
   erasing = true;
 };
 
+document.getElementById("ellipse").onclick = function() {
+  creating = true;
+  moving = false;
+  erasing = false;
+  shapeType = "ellipse";
+};
+
+document.getElementById("rectangle").onclick = function() {
+  creating = true;
+  moving = false;
+  erasing = false;
+  shapeType = "rectangle";
+};
+
+document.getElementById("polygon").onclick = function() {
+  creating = true;
+  moving = false;
+  erasing = false;
+  shapeType = "polygon";
+};
+
 document.getElementById("lineWidth").onchange = function() {
   ctx.lineWidth = this.value;
 };
 
 function redraw() {
   ctx.clearRect(0, 0, c.width, c.height);
-  lines.forEach(function(line) {
+  shapes.forEach(function(shape) {
     ctx.beginPath();
-    ctx.moveTo(line.x1, line.y1);
-    ctx.lineTo(line.x2, line.y2);
+    if (shape.type === "ellipse") {
+      ctx.ellipse(shape.x + shape.width / 2, shape.y + shape.height / 2, Math.abs(shape.width / 2), Math.abs(shape.height / 2), 0, 0, Math.PI * 2);
+    } else if (shape.type === "rectangle") {
+      ctx.rect(shape.x, shape.y, shape.width, shape.height);
+    } else if (shape.type === "polygon") {
+      // W tym przykładzie wielokąt jest traktowany jako trójkąt
+      ctx.moveTo(shape.x, shape.y);
+      ctx.lineTo(shape.x + shape.width, shape.y);
+      ctx.lineTo(shape.x + shape.width / 2, shape.y + shape.height);
+      ctx.closePath();
+    }
     ctx.stroke();
   });
 }
