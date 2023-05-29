@@ -6,32 +6,92 @@
 Your browser does not support the HTML5 canvas tag.
 </canvas>
 
+<button id="create">Rysuj linie</button>
+<button id="move">Przesuń punkty</button>
+<button id="eraser">Gumka</button>
+<input type="range" id="lineWidth" min="1" max="10">
+
 <script>
 var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
 
-var drawing = false;
-var lastPoint;
+var lines = [];
+var selectedLineIndex;
+var movingPoint;
+var creating = false;
+var moving = false;
+var erasing = false;
+
+ctx.lineWidth = 1;
 
 c.onmousedown = function(e) {
-  drawing = true;
-  lastPoint = { x: e.clientX, y: e.clientY };
+  if (erasing) {
+    lines = lines.filter(function(line) {
+      return Math.abs(line.x1 - e.clientX) + Math.abs(line.y1 - e.clientY) > ctx.lineWidth &&
+             Math.abs(line.x2 - e.clientX) + Math.abs(line.y2 - e.clientY) > ctx.lineWidth;
+    });
+    redraw();
+  } else if (creating) {
+    var line = {x1: e.clientX, y1: e.clientY, x2: e.clientX, y2: e.clientY};
+    lines.push(line);
+    selectedLineIndex = lines.length - 1;
+    movingPoint = 'x2';
+  } else if (moving) {
+    selectedLineIndex = lines.findIndex(function(line) {
+      return Math.abs(line.x1 - e.clientX) + Math.abs(line.y1 - e.clientY) < 10 ||
+             Math.abs(line.x2 - e.clientX) + Math.abs(line.y2 - e.clientY) < 10;
+    });
+    if (selectedLineIndex !== -1) {
+      var line = lines[selectedLineIndex];
+      movingPoint = Math.abs(line.x1 - e.clientX) + Math.abs(line.y1 - e.clientY) < 10 ? 'x1' : 'x2';
+    }
+  }
 };
 
 c.onmousemove = function(e) {
-  if (!drawing) return;
-  
-  ctx.beginPath();
-  ctx.moveTo(lastPoint.x, lastPoint.y);
-  ctx.lineTo(e.clientX, e.clientY);
-  ctx.stroke();
-  
-  lastPoint = { x: e.clientX, y: e.clientY };
+  if (selectedLineIndex !== -1) {
+    var line = lines[selectedLineIndex];
+    line[movingPoint] = e.clientX;
+    line[movingPoint.replace('x', 'y')] = e.clientY;
+    redraw();
+  }
 };
 
 c.onmouseup = function() {
-  drawing = false;
+  selectedLineIndex = -1;
 };
+
+document.getElementById("create").onclick = function() {
+  creating = true;
+  moving = false;
+  erasing = false;
+};
+
+document.getElementById("move").onclick = function() {
+  creating = false;
+  moving = true;
+  erasing = false;
+};
+
+document.getElementById("eraser").onclick = function() {
+  creating = false;
+  moving = false;
+  erasing = true;
+};
+
+document.getElementById("lineWidth").onchange = function() {
+  ctx.lineWidth = this.value;
+};
+
+function redraw() {
+  ctx.clearRect(0, 0, c.width, c.height);
+  lines.forEach(function(line) {
+    ctx.beginPath();
+    ctx.moveTo(line.x1, line.y1);
+    ctx.lineTo(line.x2, line.y2);
+    ctx.stroke();
+  });
+}
 </script>
 
 </body>
