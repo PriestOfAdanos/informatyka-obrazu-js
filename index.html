@@ -34,7 +34,12 @@ var shapeType = "";
 ctx.lineWidth = 1;
 
 c.onmousedown = function(e) {
-  if (erasing) {
+  if (creating && shapeType === "line") {
+    var line = {type: shapeType, x1: e.clientX, y1: e.clientY, x2: e.clientX, y2: e.clientY};
+    shapes.push(line);
+    selectedShapeIndex = shapes.length - 1;
+    movingPoint = 'x2';
+  } else if (erasing) {
     shapes = shapes.filter(function(shape) {
       return !(shape.x <= e.clientX && e.clientX <= shape.x + shape.width &&
                shape.y <= e.clientY && e.clientY <= shape.y + shape.height);
@@ -52,6 +57,10 @@ c.onmousemove = function(e) {
     var shape = shapes[selectedShapeIndex];
     shape.width = e.clientX - shape.x;
     shape.height = e.clientY - shape.y;
+    if (shape.type === "line") {
+      shape[movingPoint] = e.clientX;
+      shape[movingPoint.replace('x', 'y')] = e.clientY;
+    }
     redraw();
   }
 };
@@ -64,6 +73,7 @@ document.getElementById("create").onclick = function() {
   creating = true;
   moving = false;
   erasing = false;
+  shapeType = "line";
 };
 
 document.getElementById("move").onclick = function() {
@@ -152,7 +162,10 @@ function redraw() {
       ctx.lineTo(shape.x + shape.width, shape.y);
       ctx.lineTo(shape.x + shape.width / 2, shape.y + shape.height);
       ctx.closePath();
-    }
+    } if (shape.type === "line") {
+      ctx.moveTo(shape.x1, shape.y1);
+      ctx.lineTo(shape.x2, shape.y2);
+      }
     ctx.stroke();
   });
 }
