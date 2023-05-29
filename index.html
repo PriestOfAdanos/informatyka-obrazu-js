@@ -14,6 +14,11 @@ Your browser does not support the HTML5 canvas tag.
 <button id="rectangle">Prostokąt</button>
 <button id="polygon">Wielokąt</button>
 
+<!-- Add HSV color picker -->
+Hue: <input type="range" id="hue" min="0" max="360">
+Saturation: <input type="range" id="saturation" min="0" max="100">
+Value: <input type="range" id="value" min="0" max="100">
+
 <script>
 var c = document.getElementById("myCanvas");
 var ctx = c.getContext("2d");
@@ -96,6 +101,41 @@ document.getElementById("polygon").onclick = function() {
 
 document.getElementById("lineWidth").onchange = function() {
   ctx.lineWidth = this.value;
+};
+
+// Add HSV to RGB function
+function hsvToRgb(h, s, v) {
+  let r, g, b, i, f, p, q, t;
+  h /= 360;
+  s /= 100;
+  v /= 100;
+  i = Math.floor(h * 6);
+  f = h * 6 - i;
+  p = v * (1 - s);
+  q = v * (1 - f * s);
+  t = v * (1 - (1 - f) * s);
+  switch (i % 6) {
+    case 0: r = v, g = t, b = p; break;
+    case 1: r = q, g = v, b = p; break;
+    case 2: r = p, g = v, b = t; break;
+    case 3: r = p, g = q, b = v; break;
+    case 4: r = t, g = p, b = v; break;
+    case 5: r = v, g = p, b = q; break;
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+// Get your HSV inputs
+var hueInput = document.getElementById("hue");
+var saturationInput = document.getElementById("saturation");
+var valueInput = document.getElementById("value");
+
+hueInput.onchange = saturationInput.onchange = valueInput.onchange = function() {
+  // Convert HSV to RGB
+  var rgb = hsvToRgb(hueInput.value, saturationInput.value, valueInput.value);
+  
+  // Change stroke color
+  ctx.strokeStyle = 'rgb(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ')';
 };
 
 function redraw() {
